@@ -1,4 +1,4 @@
-
+x <- read.csv("honhyo_2024_convert.csv")
 
 
 # 1. 自転車事故データの抽出と集計
