@@ -1,0 +1,107 @@
+```r
+# ========================================
+# 兵庫県の自転車事故の特徴分析
+# ========================================
+
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+
+# データ読み込み（既に読み込み済みの場合はスキップ）
+x <- read.csv("honhyo_2024_convert.csv")
+
+# 兵庫県フラグの作成
+is_hyogo <- grepl("兵庫", x$都道府県名)
+
+# 基本統計
+cat("=== 基本統計 ===\n")
+cat("兵庫県:", sum(is_hyogo), "件\n")
+cat("他都道府県:", sum(!is_hyogo), "件\n\n")
+
+# 主要な特徴量の抽出と比較
+key_features <- data.frame(
+  feature = character(),
+  category = character(),
+  hyogo_pct = numeric(),
+  other_pct = numeric(),
+  diff = numeric(),
+  stringsAsFactors = FALSE
+)
+
+# 1. 速度規制（最も差が大きい）
+speed_summary <- x %>%
+  mutate(pref = ifelse(is_hyogo, "兵庫県", "他県")) %>%
+  group_by(pref, `速度規制.指定のみ..当事者A.`) %>%
+  summarise(count = n(), .groups = 'drop') %>%
+  group_by(pref) %>%
+  mutate(pct = count / sum(count) * 100) %>%
+  select(pref, category = `速度規制.指定のみ..当事者A.`, pct) %>%
+  pivot_wider(names_from = pref, values_from = pct) %>%
+  mutate(
+    feature = "速度規制",
+    diff = 兵庫県 - 他県
+  ) %>%
+  select(feature, category, hyogo_pct = 兵庫県, other_pct = 他県, diff)
+
+# 2. 道路形状
+road_summary <- x %>%
+  mutate(pref = ifelse(is_hyogo, "兵庫県", "他県")) %>%
+  group_by(pref, 道路形状) %>%
+  summarise(count = n(), .groups = 'drop') %>%
+  group_by(pref) %>%
+  mutate(pct = count / sum(count) * 100) %>%
+  select(pref, category = 道路形状, pct) %>%
+  pivot_wider(names_from = pref, values_from = pct) %>%
+  mutate(
+    feature = "道路形状",
+    diff = 兵庫県 - 他県
+  ) %>%
+  select(feature, category, hyogo_pct = 兵庫県, other_pct = 他県, diff)
+
+# 3. 当事者種別（当事者B）
+party_summary <- x %>%
+  mutate(pref = ifelse(is_hyogo, "兵庫県", "他県")) %>%
+  group_by(pref, `当事者種別.当事者B.`) %>%
+  summarise(count = n(), .groups = 'drop') %>%
+  group_by(pref) %>%
+  mutate(pct = count / sum(count) * 100) %>%
+  select(pref, category = `当事者種別.当事者B.`, pct) %>%
+  pivot_wider(names_from = pref, values_from = pct) %>%
+  mutate(
+    feature = "衝突相手",
+    diff = 兵庫県 - 他県
+  ) %>%
+  select(feature, category, hyogo_pct = 兵庫県, other_pct = 他県, diff)
+
+# 4. 事故類型
+type_summary <- x %>%
+  mutate(pref = ifelse(is_hyogo, "兵庫県", "他県")) %>%
+  group_by(pref, 事故類型) %>%
+  summarise(count = n(), .groups = 'drop') %>%
+  group_by(pref) %>%
+  mutate(pct = count / sum(count) * 100) %>%
+  select(pref, category = 事故類型, pct) %>%
+  pivot_wider(names_from = pref, values_from = pct) %>%
+  mutate(
+    feature = "事故類型",
+    diff = 兵庫県 - 他県
+  ) %>%
+  select(feature, category, hyogo_pct = 兵庫県, other_pct = 他県, diff)
+
+# 全てを結合
+key_features <- bind_rows(
+  speed_summary,
+  road_summary,
+  party_summary,
+  type_summary
+)
+
+# 差の絶対値が大きい順に並べ替え
+key_features <- key_features %>%
+  arrange(desc(abs(diff)))
+
+# 結果表示（差の大きいもの上位20件）
+cat("=== 兵庫県と他県の主要な差異（上位20件） ===\n")
+print(key_features %>% head(20), n = 20)
+
+```
