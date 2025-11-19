@@ -10,6 +10,10 @@ library(tidyr)
 # データ読み込み（既に読み込み済みの場合はスキップ）
 x <- read.csv("honhyo_2024_convert.csv")
 
+# ★★★ 追加：自転車事故のみを抽出 ★★★
+x <- x %>%
+  filter(grepl("自転車", 当事者種別.当事者A.) | grepl("自転車", 当事者種別.当事者B.))
+
 # 兵庫県フラグの作成
 is_hyogo <- grepl("兵庫", x$都道府県名)
 
